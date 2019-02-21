@@ -1,4 +1,5 @@
-﻿using ImageLoader.Shared;
+﻿using ImageLoader.Business;
+using ImageLoader.Shared;
 using StructureMap;
 using System;
 
@@ -15,6 +16,7 @@ namespace ImageLoader.IoC
             return new Container(c =>
             {
                 c.AddRegistry<SharedRegistry>();
+                c.AddRegistry<BusinessRegistry>();
             });
         }
     }

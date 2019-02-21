@@ -9,6 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ImageLoader.Business\ImageLoader.Business.csproj" />
     <ProjectReference Include="..\ImageLoader.Shared\ImageLoader.Shared.csproj" />
   </ItemGroup>
 
