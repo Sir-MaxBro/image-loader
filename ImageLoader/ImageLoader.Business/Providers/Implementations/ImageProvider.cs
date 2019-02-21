@@ -2,6 +2,7 @@
 using ImageLoader.Business.Models;
 using ImageLoader.Business.Services;
 using ImageLoader.Shared.Configurations;
+using ImageLoader.Shared.Services;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -15,14 +16,17 @@ namespace ImageLoader.Business.Providers.Implementations
     internal class ImageProvider : IImageProvider
     {
         private readonly IImageService _imageService;
+        private readonly ILoggerService _loggerService;
         private readonly IImageSourceProvider _imageSourceProvider;
         private readonly IConfigurationProvider _configurationProvider;
 
         public ImageProvider(IImageService imageService,
+            ILoggerService loggerService,
             IImageSourceProvider imageSourceProvider,
             IConfigurationProvider configurationProvider)
         {
             _imageService = imageService ?? throw new ArgumentNullException(nameof(imageService));
+            _loggerService = loggerService ?? throw new ArgumentNullException(nameof(loggerService));
             _imageSourceProvider = imageSourceProvider ?? throw new ArgumentNullException(nameof(imageSourceProvider));
             _configurationProvider = configurationProvider ?? throw new ArgumentNullException(nameof(configurationProvider));
         }
@@ -57,14 +61,36 @@ namespace ImageLoader.Business.Providers.Implementations
             {
                 foreach (var imageUrl in imageUrls)
                 {
+                    var stopWatch = default(Stopwatch);
                     var startThreadId = this.GetCurrentThreadId();
-                    var stopWatch = Stopwatch.StartNew();
+                    var responseMessage = default(HttpResponseMessage);
 
-                    var response = await httpClient.GetAsync(imageUrl);
-                    var imageBytes = await response.Content.ReadAsByteArrayAsync();
+                    try
+                    {
+                        stopWatch = Stopwatch.StartNew();
+                        responseMessage = await httpClient.GetAsync(imageUrl);
+                    }
+                    catch (HttpRequestException ex)
+                    {
+                        // log exception
+                        _loggerService.LogError(ex, $"Image url: {imageUrl}");
+                    }
+                    catch (AggregateException ex)
+                    {
+                        // log exception
+                        _loggerService.LogError(ex, $"Image url: {imageUrl}");
+                    }
+                    finally
+                    {
+                        stopWatch?.Stop();
+                    }
 
-                    stopWatch.Stop();
+                    if (responseMessage == null)
+                    {
+                        continue;
+                    }
 
+                    var imageBytes = await responseMessage.Content.ReadAsByteArrayAsync();
                     var imageInfoModel = new ImageInfoModel(imageUrl, imageBytes)
                     {
                         LoadedTime = stopWatch.ElapsedMilliseconds,
